@@ -6,6 +6,36 @@ import '../core/theme.dart';
 import '../core/sound_engine.dart';
 import '../views/level_complete_dialog.dart';
 
+class ExpandProblem {
+  final String factorOutside;
+  final List<String> insideTerms;
+  final List<String> expandedTermsTex;
+  final String finalTex;
+
+  ExpandProblem({
+    required this.factorOutside,
+    required this.insideTerms,
+    required this.expandedTermsTex,
+    required this.finalTex,
+  });
+}
+
+class FactorProblem {
+  final String originalExprTex;
+  final List<String> optionsTex;
+  final String correctFactorTex;
+  final String factoredResultTex;
+  final String hint;
+
+  FactorProblem({
+    required this.originalExprTex,
+    required this.optionsTex,
+    required this.correctFactorTex,
+    required this.factoredResultTex,
+    required this.hint,
+  });
+}
+
 class ForgeGame extends StatefulWidget {
   final Quest quest;
   const ForgeGame({super.key, required this.quest});
@@ -15,21 +45,59 @@ class ForgeGame extends StatefulWidget {
 }
 
 class _ForgeGameState extends State<ForgeGame> {
-  // Fase 1: Haakjes wegwerken -> 3a(2a - 5b)
-  final String factorOutside = "3a";
-  final List<String> insideTerms = ["2a", "-5b"];
-  final List<bool> termsExpanded = [false, false];
-  final List<String> expandedTermsTex = [r"6a^2", r"-15ab"];
+  // 2 Haakjes wegwerken opgaven
+  final List<ExpandProblem> expandProblems = [
+    ExpandProblem(
+      factorOutside: "3a",
+      insideTerms: ["2a", "-5b"],
+      expandedTermsTex: [r"6a^2", r"-15ab"],
+      finalTex: r"6a^2 - 15ab",
+    ),
+    ExpandProblem(
+      factorOutside: "-4x",
+      insideTerms: ["3x", "+2y"],
+      expandedTermsTex: [r"-12x^2", r"-8xy"],
+      finalTex: r"-12x^2 - 8xy",
+    ),
+  ];
 
-  bool isFactoringMode = false; // Fase 2: Ontbinden in factoren
+  // 2 Ontbinden in factoren opgaven
+  final List<FactorProblem> factorProblems = [
+    FactorProblem(
+      originalExprTex: r"6p^2 - 10pq",
+      optionsTex: [r"2", r"p", r"2p", r"3p", r"6p"],
+      correctFactorTex: r"2p",
+      factoredResultTex: r"2p(3p - 5q)",
+      hint: "De ggd van 6 en 10 is 2, en beide termen bevatten de variabele p.",
+    ),
+    FactorProblem(
+      originalExprTex: r"15x^3 + 25x^2",
+      optionsTex: [r"5", r"5x", r"5x^2", r"15x^2", r"25x"],
+      correctFactorTex: r"5x^2",
+      factoredResultTex: r"5x^2(3x + 5)",
+      hint: "De ggd van 15 en 25 is 5, en de hoogste gemeenschappelijke macht van x is x².",
+    ),
+  ];
 
-  // Fase 2: Ontbinden in factoren -> 6p^2 - 10pq
-  final String originalExprTex = r"6p^2 - 10pq";
-  final List<String> factorOptionsTex = [r"2", r"p", r"2p", r"3p", r"6p"];
-  final String correctFactorTex = r"2p";
-  final String factoredResultTex = r"2p(3p - 5q)";
+  int currentStage = 0; // 0, 1: Expand; 2, 3: Factor
+  List<bool> termsExpanded = [];
   bool isFactored = false;
   String? wrongAttempt;
+
+  @override
+  void initState() {
+    super.initState();
+    _initStage();
+  }
+
+  void _initStage() {
+    if (currentStage < expandProblems.length) {
+      termsExpanded = List.filled(expandProblems[currentStage].insideTerms.length, false);
+    } else {
+      isFactored = false;
+      wrongAttempt = null;
+    }
+  }
 
   void _expandTerm(int index) {
     if (!termsExpanded[index]) {
@@ -39,20 +107,17 @@ class _ForgeGameState extends State<ForgeGame> {
       SoundEngine().playFusionSound();
 
       if (termsExpanded.every((e) => e == true)) {
-        // Na 1 seconde door naar fase 2
-        Future.delayed(const Duration(milliseconds: 1200), () {
+        Future.delayed(const Duration(milliseconds: 1000), () {
           if (!mounted) return;
-          setState(() {
-            isFactoringMode = true;
-          });
-          SoundEngine().playClickSound();
+          _nextStage();
         });
       }
     }
   }
 
   void _attemptFactor(String factorTex) {
-    if (factorTex == correctFactorTex) {
+    final problem = factorProblems[currentStage - expandProblems.length];
+    if (factorTex == problem.correctFactorTex) {
       setState(() {
         isFactored = true;
         wrongAttempt = null;
@@ -60,7 +125,7 @@ class _ForgeGameState extends State<ForgeGame> {
       SoundEngine().playFusionSound();
       Future.delayed(const Duration(milliseconds: 1200), () {
         if (!mounted) return;
-        LevelCompleteDialog.show(context, widget.quest, 3, widget.quest.baseXP, 'q3');
+        _nextStage();
       });
     } else {
       SoundEngine().playErrorSound();
@@ -70,16 +135,31 @@ class _ForgeGameState extends State<ForgeGame> {
     }
   }
 
+  void _nextStage() {
+    if (currentStage < expandProblems.length + factorProblems.length - 1) {
+      setState(() {
+        currentStage++;
+        _initStage();
+      });
+      SoundEngine().playClickSound();
+    } else {
+      LevelCompleteDialog.show(context, widget.quest, 3, widget.quest.baseXP, 'q3');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final bool isExpand = currentStage < expandProblems.length;
+    final int totalStages = expandProblems.length + factorProblems.length;
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Center(
         child: Container(
-          constraints: const BoxConstraints(maxWidth: 800),
+          constraints: const BoxConstraints(maxWidth: 820),
           child: Column(
             children: [
-              // Voortgangsbalk & Titel
+              // Voortgang
               Container(
                 padding: const EdgeInsets.all(18),
                 decoration: BoxDecoration(
@@ -91,9 +171,7 @@ class _ForgeGameState extends State<ForgeGame> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      isFactoringMode
-                          ? "Fase 2 van 2: Ontbinden in Factoren"
-                          : "Fase 1 van 2: Haakjes Wegwerken",
+                      "Opgave ${currentStage + 1} van $totalStages: ${isExpand ? 'Haakjes Wegwerken' : 'Ontbinden in Factoren'}",
                       style: const TextStyle(
                         color: AxiomTheme.accentGold,
                         fontSize: 16,
@@ -107,7 +185,7 @@ class _ForgeGameState extends State<ForgeGame> {
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
-                        isFactoringMode ? "Grootste factor (ggd)" : "Distributieve wet",
+                        isExpand ? "Distributiviteit" : "GGD buiten haakjes",
                         style: const TextStyle(
                           color: AxiomTheme.primaryCyan,
                           fontWeight: FontWeight.bold,
@@ -120,7 +198,7 @@ class _ForgeGameState extends State<ForgeGame> {
               ),
               const SizedBox(height: 36),
 
-              if (!isFactoringMode) _buildExpandPhase() else _buildFactorPhase(),
+              if (isExpand) _buildExpandPhase() else _buildFactorPhase(),
             ],
           ),
         ),
@@ -129,6 +207,8 @@ class _ForgeGameState extends State<ForgeGame> {
   }
 
   Widget _buildExpandPhase() {
+    final problem = expandProblems[currentStage];
+
     return Column(
       children: [
         Text(
@@ -138,9 +218,9 @@ class _ForgeGameState extends State<ForgeGame> {
             color: AxiomTheme.primaryCyan,
           ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 10),
         const Text(
-          "Vermenigvuldig de factor vóór de haakjes met elke afzonderlijke term binnen de haakjes.",
+          "Tik op elke term binnen de haakjes om de vermenigvuldiging met de buitenste factor uit te voeren.",
           textAlign: TextAlign.center,
           style: TextStyle(color: Colors.white70, fontSize: 14),
         ),
@@ -176,7 +256,7 @@ class _ForgeGameState extends State<ForgeGame> {
                   ],
                 ),
                 child: Math.tex(
-                  factorOutside,
+                  problem.factorOutside,
                   textStyle: const TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.bold,
@@ -190,9 +270,8 @@ class _ForgeGameState extends State<ForgeGame> {
                 style: TextStyle(fontSize: 38, color: Colors.white70, fontWeight: FontWeight.w300),
               ),
 
-              // Termen binnen haakjes
-              for (int i = 0; i < insideTerms.length; i++) ...[
-                if (i > 0 && !termsExpanded[i] && !insideTerms[i].startsWith('-'))
+              for (int i = 0; i < problem.insideTerms.length; i++) ...[
+                if (i > 0 && !termsExpanded[i] && !problem.insideTerms[i].startsWith('-'))
                   const Text("+", style: TextStyle(fontSize: 24, color: Colors.white70)),
                 GestureDetector(
                   onTap: () => _expandTerm(i),
@@ -222,7 +301,7 @@ class _ForgeGameState extends State<ForgeGame> {
                             : [],
                       ),
                       child: Math.tex(
-                        termsExpanded[i] ? expandedTermsTex[i] : insideTerms[i],
+                        termsExpanded[i] ? problem.expandedTermsTex[i] : problem.insideTerms[i],
                         textStyle: TextStyle(
                           fontSize: 26,
                           fontWeight: FontWeight.bold,
@@ -251,7 +330,7 @@ class _ForgeGameState extends State<ForgeGame> {
           ),
           child: Text(
             termsExpanded.every((e) => e)
-                ? "✨ Voltooid! Resultaat: 6a² - 15ab. Nu door naar ontbinden..."
+                ? "✨ Opgelost! Resultaat: ${problem.finalTex}."
                 : "👉 Klik op elke term binnen de haakjes om te vermenigvuldigen.",
             style: TextStyle(
               color: termsExpanded.every((e) => e) ? AxiomTheme.accentGold : Colors.white70,
@@ -265,6 +344,8 @@ class _ForgeGameState extends State<ForgeGame> {
   }
 
   Widget _buildFactorPhase() {
+    final problem = factorProblems[currentStage - expandProblems.length];
+
     return Column(
       children: [
         Text(
@@ -276,13 +357,13 @@ class _ForgeGameState extends State<ForgeGame> {
         ),
         const SizedBox(height: 10),
         const Text(
-          "Zoek de grootste gemeenschappelijke factor van beide termen en haal deze buiten haakjes.",
+          "Kies de grootste gemeenschappelijke factor die je buiten haakjes kunt halen.",
           textAlign: TextAlign.center,
           style: TextStyle(color: Colors.white70, fontSize: 14),
         ),
         const SizedBox(height: 36),
 
-        // Grote LaTeX weergave
+        // KaTeX Formule weergave
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 28),
           decoration: BoxDecoration(
@@ -294,7 +375,7 @@ class _ForgeGameState extends State<ForgeGame> {
             ),
           ),
           child: Math.tex(
-            isFactored ? factoredResultTex : originalExprTex,
+            isFactored ? problem.factoredResultTex : problem.originalExprTex,
             textStyle: TextStyle(
               fontSize: 36,
               fontWeight: FontWeight.bold,
@@ -310,7 +391,7 @@ class _ForgeGameState extends State<ForgeGame> {
         const SizedBox(height: 36),
         if (!isFactored) ...[
           const Text(
-            "Welke factor kan maximaal buiten haakjes worden gehaald?",
+            "Welke factor hoort buiten de haakjes?",
             style: TextStyle(color: AxiomTheme.accentGold, fontSize: 16, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 20),
@@ -318,7 +399,7 @@ class _ForgeGameState extends State<ForgeGame> {
             spacing: 16,
             runSpacing: 16,
             alignment: WrapAlignment.center,
-            children: factorOptionsTex.map((f) {
+            children: problem.optionsTex.map((f) {
               final isWrong = wrongAttempt == f;
               return ElevatedButton(
                 onPressed: () => _attemptFactor(f),
@@ -344,16 +425,24 @@ class _ForgeGameState extends State<ForgeGame> {
           ),
           if (wrongAttempt != null) ...[
             const SizedBox(height: 16),
-            const Text(
-              "Niet de grootste factor! Kijk naar de getallen (ggd van 6 en 10 is 2) én de letters (p² en p).",
-              textAlign: TextAlign.center,
-              style: TextStyle(color: AxiomTheme.errorRed, fontSize: 14, fontWeight: FontWeight.bold),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AxiomTheme.errorRed.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: AxiomTheme.errorRed),
+              ),
+              child: Text(
+                "💡 Hint: ${problem.hint}",
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: Colors.white, fontSize: 13),
+              ),
             ).animate().shake(),
           ],
         ] else ...[
-          const Text(
-            "🎉 Uitstekend! 6p² - 10pq = 2p(3p - 5q)",
-            style: TextStyle(color: AxiomTheme.primaryCyan, fontSize: 18, fontWeight: FontWeight.bold),
+          Text(
+            "🎉 Uitstekend! ${problem.originalExprTex} = ${problem.factoredResultTex}",
+            style: const TextStyle(color: AxiomTheme.primaryCyan, fontSize: 18, fontWeight: FontWeight.bold),
           ),
         ],
       ],

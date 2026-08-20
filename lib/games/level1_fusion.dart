@@ -42,9 +42,11 @@ class _FusionGameState extends State<FusionGame> {
   List<Term?> grid = [];
   bool isMultiplication = false;
   int score = 0;
-  int targetScore = 3;
-  String feedbackMessage = "Sleep en combineer termen die bij elkaar passen!";
+  int targetScore = 4;
+  int? selectedTileIndex;
+  String feedbackMessage = "Tik op een tegel om te selecteren, of sleep twee tegels op elkaar!";
   bool isError = false;
+  String lastFormulaTex = r'3x + 2x = 5x';
 
   @override
   void initState() {
@@ -56,8 +58,10 @@ class _FusionGameState extends State<FusionGame> {
     grid = [
       Term(3, 'x', 1), Term(2, 'x', 1), Term(4, 'x', 2),
       Term(5, 'x', 2), Term(2, 'a', 3), Term(3, 'a', 3),
-      Term(6, 'x', 1), Term(4, 'a', 3), null,
+      Term(6, 'x', 1), Term(4, 'a', 3), Term(2, 'x', 2),
     ];
+    score = 0;
+    selectedTileIndex = null;
   }
 
   bool _canFuse(Term a, Term b) {
@@ -76,33 +80,45 @@ class _FusionGameState extends State<FusionGame> {
     }
   }
 
-  void _handleDrop(int fromIndex, int toIndex) {
-    if (fromIndex == toIndex) return;
+  void _mergeTiles(int fromIndex, int toIndex) {
+    if (fromIndex == toIndex) {
+      setState(() => selectedTileIndex = null);
+      return;
+    }
     final fromTerm = grid[fromIndex];
     final toTerm = grid[toIndex];
 
-    if (fromTerm == null) return;
+    if (fromTerm == null) {
+      setState(() => selectedTileIndex = null);
+      return;
+    }
 
     setState(() {
       if (toTerm == null) {
-        // Alleen verplaatsen
+        // Verplaatsen
         grid[toIndex] = fromTerm;
         grid[fromIndex] = null;
+        selectedTileIndex = null;
         SoundEngine().playClickSound();
+        feedbackMessage = "Tegel verplaatst.";
+        isError = false;
       } else {
-        // Poging tot fuseren
+        // Probeer samenvoegen
         if (_canFuse(fromTerm, toTerm)) {
           final result = _fuse(fromTerm, toTerm);
-          grid[toIndex] = result;
-          grid[fromIndex] = null;
-          SoundEngine().playFusionSound();
-          score++;
-          isError = false;
           if (isMultiplication) {
+            lastFormulaTex = "${fromTerm.tex} \\cdot ${toTerm.tex} = ${result.tex}";
             feedbackMessage = "Machten vermenigvuldigd: exponenten opgeteld!";
           } else {
+            lastFormulaTex = "${fromTerm.tex} + ${toTerm.tex} = ${result.tex}";
             feedbackMessage = "Gelijksoortige termen herleid: coëfficiënten opgeteld!";
           }
+          grid[toIndex] = result;
+          grid[fromIndex] = null;
+          selectedTileIndex = null;
+          score++;
+          isError = false;
+          SoundEngine().playFusionSound();
 
           if (score >= targetScore) {
             Future.delayed(const Duration(milliseconds: 600), () {
@@ -113,8 +129,9 @@ class _FusionGameState extends State<FusionGame> {
         } else {
           SoundEngine().playErrorSound();
           isError = true;
+          selectedTileIndex = null;
           if (isMultiplication) {
-            feedbackMessage = "Fout: Alleen termen met dezelfde variabele kunnen worden vermenigvuldigd!";
+            feedbackMessage = "Fout: Alleen termen met dezelfde variabele (${fromTerm.variable} ≠ ${toTerm.variable}) kunnen worden vermenigvuldigd!";
           } else {
             feedbackMessage = "Fout: Je kunt alleen gelijksoortige termen optellen (gelijke variabele én exponent)!";
           }
@@ -123,16 +140,31 @@ class _FusionGameState extends State<FusionGame> {
     });
   }
 
+  void _handleTapTile(int index) {
+    if (selectedTileIndex == null) {
+      if (grid[index] != null) {
+        setState(() {
+          selectedTileIndex = index;
+          SoundEngine().playClickSound();
+          feedbackMessage = "Tegel geselecteerd: ${grid[index]!.tex}. Tik nu op een andere tegel om te combineren.";
+          isError = false;
+        });
+      }
+    } else {
+      _mergeTiles(selectedTileIndex!, index);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
       child: Center(
         child: Container(
-          constraints: const BoxConstraints(maxWidth: 720),
+          constraints: const BoxConstraints(maxWidth: 760),
           child: Column(
             children: [
-              // Uitlegkaart
+              // Uitleg & Modus selector
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
@@ -156,10 +188,11 @@ class _FusionGameState extends State<FusionGame> {
                         Row(
                           children: [
                             Text(
-                              isMultiplication ? "Vermenigvuldigen (·)" : "Optellen (+)",
+                              isMultiplication ? "Machten vermenigvuldigen (·)" : "Gelijksoortige termen optellen (+)",
                               style: const TextStyle(
                                 color: AxiomTheme.primaryCyan,
                                 fontWeight: FontWeight.bold,
+                                fontSize: 13,
                               ),
                             ),
                             const SizedBox(width: 8),
@@ -169,9 +202,10 @@ class _FusionGameState extends State<FusionGame> {
                               onChanged: (val) {
                                 setState(() {
                                   isMultiplication = val;
+                                  selectedTileIndex = null;
                                   isError = false;
                                   feedbackMessage = isMultiplication
-                                      ? "Modus: Vermenigvuldigen (Machtenregel: a^p · a^q = a^{p+q})"
+                                      ? "Modus: Vermenigvuldigen (Regel: a^p · a^q = a^{p+q})"
                                       : "Modus: Optellen (Herleiden: 3x + 2x = 5x)";
                                 });
                                 SoundEngine().playClickSound();
@@ -181,17 +215,15 @@ class _FusionGameState extends State<FusionGame> {
                         ),
                       ],
                     ),
-                    const Divider(color: Colors.white12, height: 24),
+                    const Divider(color: Colors.white12, height: 20),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Row(
                           children: [
-                            const Text("Regel: ", style: TextStyle(color: Colors.white70)),
+                            const Text("Laatste bewerking: ", style: TextStyle(color: Colors.white70, fontSize: 13)),
                             Math.tex(
-                              isMultiplication
-                                  ? r'4x^3 \cdot 2x^2 = 8x^5'
-                                  : r'3x + 2x = 5x',
+                              lastFormulaTex,
                               textStyle: const TextStyle(
                                 color: AxiomTheme.accentGold,
                                 fontSize: 16,
@@ -201,11 +233,11 @@ class _FusionGameState extends State<FusionGame> {
                           ],
                         ),
                         Text(
-                          "Voortgang: $score / $targetScore",
+                          "Doel: $score / $targetScore fusies",
                           style: const TextStyle(
                             color: AxiomTheme.primaryCyan,
                             fontWeight: FontWeight.bold,
-                            fontSize: 15,
+                            fontSize: 14,
                           ),
                         ),
                       ],
@@ -213,11 +245,11 @@ class _FusionGameState extends State<FusionGame> {
                   ],
                 ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 16),
 
               // Feedback banner
               AnimatedContainer(
-                duration: const Duration(milliseconds: 250),
+                duration: const Duration(milliseconds: 200),
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 decoration: BoxDecoration(
                   color: isError
@@ -242,7 +274,7 @@ class _FusionGameState extends State<FusionGame> {
                         feedbackMessage,
                         style: TextStyle(
                           color: isError ? AxiomTheme.errorRed : AxiomTheme.textWhite,
-                          fontSize: 14,
+                          fontSize: 13,
                           fontWeight: FontWeight.w600,
                         ),
                         textAlign: TextAlign.center,
@@ -250,7 +282,7 @@ class _FusionGameState extends State<FusionGame> {
                     ),
                   ],
                 ),
-              ).animate(key: ValueKey(feedbackMessage)).fadeIn().shake(duration: 300.ms),
+              ).animate(key: ValueKey(feedbackMessage)).fadeIn(),
 
               const SizedBox(height: 24),
 
@@ -274,37 +306,46 @@ class _FusionGameState extends State<FusionGame> {
                     ),
                     itemCount: 9,
                     itemBuilder: (ctx, index) {
+                      final term = grid[index];
+                      final isSelected = selectedTileIndex == index;
+
                       return DragTarget<int>(
-                        onAcceptWithDetails: (details) => _handleDrop(details.data, index),
+                        onAcceptWithDetails: (details) => _mergeTiles(details.data, index),
                         builder: (ctx, candidateData, rejectedData) {
-                          final term = grid[index];
-                          return Container(
-                            decoration: BoxDecoration(
-                              color: candidateData.isNotEmpty
-                                  ? AxiomTheme.primaryCyan.withValues(alpha: 0.25)
-                                  : const Color(0xFF161B22),
-                              borderRadius: BorderRadius.circular(14),
-                              border: Border.all(
-                                color: candidateData.isNotEmpty
-                                    ? AxiomTheme.primaryCyan
-                                    : AxiomTheme.primaryPurple.withValues(alpha: 0.4),
-                                width: candidateData.isNotEmpty ? 2.5 : 1.5,
+                          return GestureDetector(
+                            onTap: () => _handleTapTile(index),
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: isSelected
+                                    ? AxiomTheme.accentGold.withValues(alpha: 0.25)
+                                    : candidateData.isNotEmpty
+                                        ? AxiomTheme.primaryCyan.withValues(alpha: 0.25)
+                                        : const Color(0xFF161B22),
+                                borderRadius: BorderRadius.circular(14),
+                                border: Border.all(
+                                  color: isSelected
+                                      ? AxiomTheme.accentGold
+                                      : candidateData.isNotEmpty
+                                          ? AxiomTheme.primaryCyan
+                                          : AxiomTheme.primaryPurple.withValues(alpha: 0.4),
+                                  width: isSelected || candidateData.isNotEmpty ? 2.5 : 1.5,
+                                ),
                               ),
+                              child: term == null
+                                  ? null
+                                  : Draggable<int>(
+                                      data: index,
+                                      feedback: Material(
+                                        color: Colors.transparent,
+                                        child: _buildTile(term.tex, isDragging: true),
+                                      ),
+                                      childWhenDragging: Opacity(
+                                        opacity: 0.25,
+                                        child: _buildTile(term.tex),
+                                      ),
+                                      child: _buildTile(term.tex, isSelected: isSelected),
+                                    ),
                             ),
-                            child: term == null
-                                ? null
-                                : Draggable<int>(
-                                    data: index,
-                                    feedback: Material(
-                                      color: Colors.transparent,
-                                      child: _buildTile(term.tex, isDragging: true),
-                                    ),
-                                    childWhenDragging: Opacity(
-                                      opacity: 0.25,
-                                      child: _buildTile(term.tex),
-                                    ),
-                                    child: _buildTile(term.tex),
-                                  ),
                           );
                         },
                       );
@@ -314,9 +355,24 @@ class _FusionGameState extends State<FusionGame> {
               ),
 
               const SizedBox(height: 20),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  OutlinedButton.icon(
+                    onPressed: () {
+                      setState(() => _initGrid());
+                      SoundEngine().playClickSound();
+                    },
+                    icon: const Icon(Icons.refresh, color: Colors.white70, size: 18),
+                    label: const Text("Speelveld opnieuw laden", style: TextStyle(color: Colors.white70)),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
               const Text(
-                "💡 Tip: Sleep een tegel bovenop een andere om ze te fuseren.",
-                style: TextStyle(color: Colors.white54, fontSize: 13),
+                "💡 Tip: Je kunt zowel slepen (drag & drop) als twee tegels achter elkaar aantikken om te combineren.",
+                style: TextStyle(color: Colors.white54, fontSize: 12),
+                textAlign: TextAlign.center,
               ),
             ],
           ),
@@ -325,7 +381,7 @@ class _FusionGameState extends State<FusionGame> {
     );
   }
 
-  Widget _buildTile(String tex, {bool isDragging = false}) {
+  Widget _buildTile(String tex, {bool isDragging = false, bool isSelected = false}) {
     return Container(
       width: 100,
       height: 100,
@@ -334,28 +390,32 @@ class _FusionGameState extends State<FusionGame> {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            isDragging
-                ? AxiomTheme.primaryPurple
-                : AxiomTheme.primaryPurple.withValues(alpha: 0.8),
+            isSelected
+                ? const Color(0xFF8A6D00)
+                : isDragging
+                    ? AxiomTheme.primaryPurple
+                    : AxiomTheme.primaryPurple.withValues(alpha: 0.8),
             const Color(0xFF381263),
           ],
         ),
         borderRadius: BorderRadius.circular(14),
         boxShadow: [
           BoxShadow(
-            color: AxiomTheme.primaryPurple.withValues(alpha: isDragging ? 0.8 : 0.3),
-            blurRadius: isDragging ? 16 : 8,
-            spreadRadius: isDragging ? 2 : 0,
+            color: isSelected
+                ? AxiomTheme.accentGold.withValues(alpha: 0.6)
+                : AxiomTheme.primaryPurple.withValues(alpha: isDragging ? 0.8 : 0.3),
+            blurRadius: isSelected || isDragging ? 16 : 8,
+            spreadRadius: isSelected || isDragging ? 2 : 0,
           )
         ],
       ),
       alignment: Alignment.center,
       child: Math.tex(
         tex,
-        textStyle: const TextStyle(
+        textStyle: TextStyle(
           fontSize: 24,
           fontWeight: FontWeight.bold,
-          color: AxiomTheme.textWhite,
+          color: isSelected ? AxiomTheme.accentGold : AxiomTheme.textWhite,
         ),
       ),
     );
