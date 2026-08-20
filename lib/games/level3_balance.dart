@@ -12,8 +12,7 @@ class BalanceEquation {
   final double startLeftConst;
   final double startRightVar;
   final double startRightConst;
-  final double targetAnswer; // integer solution
-  final List<String> recommendedSteps;
+  final double targetAnswer; // geheel getal als oplossing
 
   BalanceEquation({
     required this.variable,
@@ -22,7 +21,6 @@ class BalanceEquation {
     required this.startRightVar,
     required this.startRightConst,
     required this.targetAnswer,
-    required this.recommendedSteps,
   });
 }
 
@@ -35,7 +33,6 @@ class BalanceGame extends StatefulWidget {
 }
 
 class _BalanceGameState extends State<BalanceGame> {
-  // 3 mooie opgaven met nette gehele getallen als uitkomst
   final List<BalanceEquation> equations = [
     BalanceEquation(
       variable: 'q',
@@ -44,7 +41,6 @@ class _BalanceGameState extends State<BalanceGame> {
       startRightVar: -2,
       startRightConst: 48,
       targetAnswer: 10, // 5q - 22 = -2q + 48 -> 7q = 70 -> q = 10
-      recommendedSteps: ['+ 2q', '+ 22', ': 7'],
     ),
     BalanceEquation(
       variable: 'x',
@@ -53,7 +49,6 @@ class _BalanceGameState extends State<BalanceGame> {
       startRightVar: 2,
       startRightConst: 27,
       targetAnswer: 6, // 4x + 15 = 2x + 27 -> 2x = 12 -> x = 6
-      recommendedSteps: ['- 2x', '- 15', ': 2'],
     ),
     BalanceEquation(
       variable: 'y',
@@ -62,7 +57,6 @@ class _BalanceGameState extends State<BalanceGame> {
       startRightVar: -1,
       startRightConst: 16,
       targetAnswer: 6, // 3y - 8 = -y + 16 -> 4y = 24 -> y = 6
-      recommendedSteps: ['+ y', '+ 8', ': 4'],
     ),
   ];
 
@@ -74,14 +68,22 @@ class _BalanceGameState extends State<BalanceGame> {
 
   String operation = '+';
   String inputValue = '';
-  String statusMessage = "Voer bewerkingen uit op beide zijden om de variabele links te isoleren.";
+  String statusMessage = "Isoleer de variabele links van het =-teken.";
   final List<String> stepHistory = [];
   bool hasWonCurrent = false;
+
+  final TextEditingController _textController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     _loadEquation(0);
+  }
+
+  @override
+  void dispose() {
+    _textController.dispose();
+    super.dispose();
   }
 
   void _loadEquation(int index) {
@@ -94,8 +96,9 @@ class _BalanceGameState extends State<BalanceGame> {
       rightConst = eq.startRightConst;
       hasWonCurrent = false;
       stepHistory.clear();
-      statusMessage = "Doel: Isoleer '${eq.variable}' links van het =-teken.";
-      inputValue = eq.recommendedSteps.isNotEmpty ? eq.recommendedSteps[0].replaceAll('+ ', '').replaceAll('- ', '').replaceAll(': ', '') : '';
+      statusMessage = "Isoleer '${eq.variable}' aan de linkerkant.";
+      inputValue = '';
+      _textController.clear();
     });
   }
 
@@ -151,6 +154,8 @@ class _BalanceGameState extends State<BalanceGame> {
         }
       }
       stepHistory.add("Beide zijden: $stepDesc");
+      _textController.clear();
+      inputValue = '';
     });
 
     SoundEngine().playClickSound();
@@ -167,7 +172,7 @@ class _BalanceGameState extends State<BalanceGame> {
     if (diffLeftVar < 0.01 && diffLeftConst < 0.01 && diffRightVar < 0.01 && diffAnswer < 0.01) {
       hasWonCurrent = true;
       setState(() {
-        statusMessage = "🎉 Opgelost! ${eq.variable} = ${eq.targetAnswer.round()}";
+        statusMessage = "Opgelost: ${eq.variable} = ${eq.targetAnswer.round()}";
       });
       SoundEngine().playVictoryFanfare();
 
@@ -176,7 +181,7 @@ class _BalanceGameState extends State<BalanceGame> {
         if (currentEquationIndex < equations.length - 1) {
           _loadEquation(currentEquationIndex + 1);
         } else {
-          LevelCompleteDialog.show(context, widget.quest, 3, widget.quest.baseXP, 'q4');
+          LevelCompleteDialog.show(context, widget.quest, 3, widget.quest.baseXP, 'q3');
         }
       });
     }
@@ -285,7 +290,6 @@ class _BalanceGameState extends State<BalanceGame> {
                 child: Stack(
                   alignment: Alignment.bottomCenter,
                   children: [
-                    // Voet
                     Container(
                       width: 140,
                       height: 16,
@@ -294,14 +298,12 @@ class _BalanceGameState extends State<BalanceGame> {
                         borderRadius: BorderRadius.circular(8),
                       ),
                     ),
-                    // Pilaar
                     Container(
                       width: 18,
                       height: 135,
                       color: Colors.grey.shade600,
                       margin: const EdgeInsets.only(bottom: 16),
                     ),
-                    // Scharnier
                     Container(
                       margin: const EdgeInsets.only(bottom: 140),
                       width: 26,
@@ -311,7 +313,6 @@ class _BalanceGameState extends State<BalanceGame> {
                         shape: BoxShape.circle,
                       ),
                     ),
-                    // Balk
                     Transform.rotate(
                       angle: tilt,
                       child: Container(
@@ -337,7 +338,7 @@ class _BalanceGameState extends State<BalanceGame> {
 
               const SizedBox(height: 32),
 
-              // Zelfstandige balans bediening (geen voorkauw-knoppen)
+              // Bedieningspaneel met directe operator-knoppen (geen dropdown)
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
@@ -346,46 +347,37 @@ class _BalanceGameState extends State<BalanceGame> {
                   border: Border.all(color: AxiomTheme.primaryPurple.withValues(alpha: 0.5), width: 1.5),
                 ),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     const Text(
                       "Kies een bewerking om op beide zijden toe te passen:",
                       style: TextStyle(color: AxiomTheme.accentGold, fontWeight: FontWeight.bold, fontSize: 15),
                       textAlign: TextAlign.center,
                     ),
-                    const SizedBox(height: 18),
+                    const SizedBox(height: 16),
+                    // Directe operator-knoppen
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        _buildOpButton('+', '+ (Plus)'),
+                        const SizedBox(width: 8),
+                        _buildOpButton('-', '- (Min)'),
+                        const SizedBox(width: 8),
+                        _buildOpButton('*', '· (Keer)'),
+                        const SizedBox(width: 8),
+                        _buildOpButton('/', ': (Delen)'),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
                     Wrap(
                       alignment: WrapAlignment.center,
                       crossAxisAlignment: WrapCrossAlignment.center,
-                      spacing: 14,
-                      runSpacing: 14,
+                      spacing: 12,
+                      runSpacing: 12,
                       children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12),
-                          decoration: BoxDecoration(
-                            color: Colors.black45,
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: Colors.white24),
-                          ),
-                          child: DropdownButtonHideUnderline(
-                            child: DropdownButton<String>(
-                              value: operation,
-                              dropdownColor: const Color(0xFF161B22),
-                              items: const [
-                                DropdownMenuItem(value: '+', child: Text("+ (Optellen)", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
-                                DropdownMenuItem(value: '-', child: Text("- (Aftrekken)", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
-                                DropdownMenuItem(value: '*', child: Text("· (Vermenigvuldigen)", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
-                                DropdownMenuItem(value: '/', child: Text(": (Delen)", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
-                              ],
-                              onChanged: (v) {
-                                if (v != null) setState(() => operation = v);
-                              },
-                            ),
-                          ),
-                        ),
                         SizedBox(
-                          width: 150,
+                          width: 170,
                           child: TextField(
+                            controller: _textController,
                             onChanged: (v) => inputValue = v,
                             onSubmitted: (v) => _applyOperation(operation, v),
                             decoration: InputDecoration(
@@ -404,7 +396,7 @@ class _BalanceGameState extends State<BalanceGame> {
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AxiomTheme.primaryCyan,
                             foregroundColor: Colors.black,
-                            padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 16),
+                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           ),
                           child: const Text("TOEPASSEN OP BEIDE KANTEN", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
@@ -441,6 +433,37 @@ class _BalanceGameState extends State<BalanceGame> {
                 ),
               ],
             ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildOpButton(String opCode, String label) {
+    final isSelected = operation == opCode;
+    return InkWell(
+      onTap: () {
+        setState(() => operation = opCode);
+        SoundEngine().playClickSound();
+      },
+      borderRadius: BorderRadius.circular(10),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          color: isSelected ? AxiomTheme.primaryCyan : const Color(0xFF0F141C),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: isSelected ? AxiomTheme.primaryCyan : Colors.white24,
+            width: isSelected ? 2 : 1,
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: isSelected ? Colors.black : Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 13,
           ),
         ),
       ),

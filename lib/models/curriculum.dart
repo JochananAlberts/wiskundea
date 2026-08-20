@@ -25,7 +25,6 @@ class Chapter {
 }
 
 enum QuestType {
-  fusion,    // Herleiden & Machten
   forge,     // Haakjes wegwerken & Ontbinden
   balance,   // Balansmethode & Lineaire vergelijkingen
   inequality // Ongelijkheden & Mintekenregel
@@ -49,34 +48,26 @@ class Quest {
   });
 }
 
-// Curriculum data in het Nederlands voor VWO Wiskunde A
+// Curriculum voor VWO Wiskunde A (3 kernvaardigheden)
 final world1 = GameDomain(
   id: 'domein_ab',
   title: 'Domein A/B: Algebraïsche Vaardigheden',
-  description: 'Beheers de fundamenten van algebra, machten en vergelijkingen voor het eindexamen.',
+  description: 'Beheers haakjes wegwerken, ontbinden in factoren, de balansmethode en ongelijkheden.',
   chapters: [
     Chapter(
       id: 'chap_1',
-      title: 'Hoofdstuk 1: Basisalgebra & Vergelijkingen',
+      title: 'Hoofdstuk 1: Algebra & Vergelijkingen',
       quests: [
         Quest(
           id: 'q1',
-          title: 'Elementen Fusie',
-          type: QuestType.fusion,
-          baseXP: 100,
-          description: 'Gelijksoortige termen herleiden & rekenregels voor machten.',
-          mathSummary: r'3x + 2x = 5x \quad \text{en} \quad 4x^3 \cdot 2x^2 = 8x^5',
-        ),
-        Quest(
-          id: 'q2',
           title: 'De Alchemisten Smederij',
           type: QuestType.forge,
           baseXP: 150,
-          description: 'Haakjes wegwerken (distributiviteit) & ontbinden in factoren.',
-          mathSummary: r'3a(2a - 5b) = 6a^2 - 15ab \quad \text{en} \quad 6p^2 - 10pq = 2p(3p - 5q)',
+          description: 'Haakjes wegwerken en ontbinden in factoren.',
+          mathSummary: r'3a(2a - 5b) \quad \text{en} \quad 6p^2 - 10pq',
         ),
         Quest(
-          id: 'q3',
+          id: 'q2',
           title: 'Weegschaal der Waarheid',
           type: QuestType.balance,
           baseXP: 200,
@@ -84,11 +75,11 @@ final world1 = GameDomain(
           mathSummary: r'5q - 22 = -2q + 48 \implies q = 10',
         ),
         Quest(
-          id: 'q4',
+          id: 'q3',
           title: 'Dimensie Klap (Ongelijkheden)',
           type: QuestType.inequality,
           baseXP: 250,
-          description: 'Lineaire ongelijkheden oplossen met de klap-het-teken regel bij delen door een negatief getal.',
+          description: 'Lineaire ongelijkheden oplossen met de mintekenregel.',
           mathSummary: r'-5t > -15 \implies t < 3',
         ),
       ],

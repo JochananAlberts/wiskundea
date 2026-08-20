@@ -14,7 +14,6 @@ class InequalityProblem {
   final double startConst;
   final double targetConst;
   final String targetOperator;
-  final List<String> recommendedSteps;
 
   InequalityProblem({
     required this.variable,
@@ -23,7 +22,6 @@ class InequalityProblem {
     required this.startConst,
     required this.targetConst,
     required this.targetOperator,
-    required this.recommendedSteps,
   });
 }
 
@@ -36,7 +34,6 @@ class InequalityGame extends StatefulWidget {
 }
 
 class _InequalityGameState extends State<InequalityGame> {
-  // 3 progressive ongelijkheden
   final List<InequalityProblem> problems = [
     InequalityProblem(
       variable: 't',
@@ -45,7 +42,6 @@ class _InequalityGameState extends State<InequalityGame> {
       startConst: -15,
       targetConst: 3,
       targetOperator: '<', // -5t > -15 -> t < 3
-      recommendedSteps: [': -5'],
     ),
     InequalityProblem(
       variable: 'x',
@@ -54,7 +50,6 @@ class _InequalityGameState extends State<InequalityGame> {
       startConst: 12,
       targetConst: -6,
       targetOperator: r'\ge', // -2x <= 12 -> x >= -6
-      recommendedSteps: [': -2'],
     ),
     InequalityProblem(
       variable: 'a',
@@ -63,7 +58,6 @@ class _InequalityGameState extends State<InequalityGame> {
       startConst: 20,
       targetConst: -5,
       targetOperator: '>', // -4a < 20 -> a > -5
-      recommendedSteps: [': -4'],
     ),
   ];
 
@@ -73,15 +67,23 @@ class _InequalityGameState extends State<InequalityGame> {
   late double currentConst;
 
   String actionOp = '/';
-  String inputValue = '-5';
+  String inputValue = '';
   bool _isFlipped = false;
-  String feedbackMessage = "Isoleer de variabele. Pas op bij vermenigvuldigen/delen met een negatief getal!";
+  String feedbackMessage = "Isoleer de variabele aan de linkerkant.";
   bool hasWonCurrent = false;
+
+  final TextEditingController _textController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     _loadProblem(0);
+  }
+
+  @override
+  void dispose() {
+    _textController.dispose();
+    super.dispose();
   }
 
   void _loadProblem(int index) {
@@ -93,8 +95,9 @@ class _InequalityGameState extends State<InequalityGame> {
       currentConst = p.startConst;
       _isFlipped = false;
       hasWonCurrent = false;
-      inputValue = p.recommendedSteps.isNotEmpty ? p.recommendedSteps[0].replaceAll(': ', '').replaceAll('/ ', '') : '-5';
-      feedbackMessage = "Doel: Isoleer '${p.variable}'. Let goed op het omklappen van het teken!";
+      inputValue = '';
+      _textController.clear();
+      feedbackMessage = "Isoleer '${p.variable}'.";
     });
   }
 
@@ -124,6 +127,8 @@ class _InequalityGameState extends State<InequalityGame> {
         currentConst /= val;
         if (val < 0) _flipOperator();
       }
+      _textController.clear();
+      inputValue = '';
     });
 
     SoundEngine().playClickSound();
@@ -143,7 +148,7 @@ class _InequalityGameState extends State<InequalityGame> {
       currentOperator = r'\ge';
     }
 
-    feedbackMessage = "🔄 Dimensie Klap! Gedeeld/vermenigvuldigd met een negatief getal: teken klapt om!";
+    feedbackMessage = "Gedeeld/vermenigvuldigd met een negatief getal: teken klapt om!";
   }
 
   void _checkWinCondition() {
@@ -155,7 +160,7 @@ class _InequalityGameState extends State<InequalityGame> {
     if (isCorrectCoeff && isCorrectConst && isCorrectOp) {
       hasWonCurrent = true;
       setState(() {
-        feedbackMessage = "🎉 Uitstekend! ${p.variable} $currentOperator ${p.targetConst.round()}";
+        feedbackMessage = "Correct: ${p.variable} $currentOperator ${p.targetConst.round()}";
       });
       SoundEngine().playVictoryFanfare();
 
@@ -220,12 +225,6 @@ class _InequalityGameState extends State<InequalityGame> {
                           label: const Text("Herstart som", style: TextStyle(color: Colors.white70)),
                         ),
                       ],
-                    ),
-                    const SizedBox(height: 6),
-                    const Text(
-                      "Regel: Bij delen of vermenigvuldigen met een negatief getal klapt het ongelijkheidsteken om.",
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.white70, fontSize: 13),
                     ),
                   ],
                 ),
@@ -313,7 +312,7 @@ class _InequalityGameState extends State<InequalityGame> {
 
               const SizedBox(height: 28),
 
-              // Bediening
+              // Bedieningspaneel met directe operator-knoppen (geen dropdown)
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
@@ -328,42 +327,31 @@ class _InequalityGameState extends State<InequalityGame> {
                       style: TextStyle(color: AxiomTheme.accentGold, fontWeight: FontWeight.bold, fontSize: 15),
                     ),
                     const SizedBox(height: 16),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        _buildOpButton('+', '+ (Plus)'),
+                        const SizedBox(width: 8),
+                        _buildOpButton('-', '- (Min)'),
+                        const SizedBox(width: 8),
+                        _buildOpButton('*', '· (Keer)'),
+                        const SizedBox(width: 8),
+                        _buildOpButton('/', ': (Delen)'),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
                     Wrap(
                       alignment: WrapAlignment.center,
                       crossAxisAlignment: WrapCrossAlignment.center,
-                      spacing: 14,
-                      runSpacing: 14,
+                      spacing: 12,
+                      runSpacing: 12,
                       children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12),
-                          decoration: BoxDecoration(
-                            color: Colors.black45,
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: Colors.white24),
-                          ),
-                          child: DropdownButtonHideUnderline(
-                            child: DropdownButton<String>(
-                              value: actionOp,
-                              dropdownColor: const Color(0xFF161B22),
-                              items: const [
-                                DropdownMenuItem(value: '+', child: Text("+ (Optellen)", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
-                                DropdownMenuItem(value: '-', child: Text("- (Aftrekken)", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
-                                DropdownMenuItem(value: '*', child: Text("· (Vermenigvuldigen)", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
-                                DropdownMenuItem(value: '/', child: Text(": (Delen)", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
-                              ],
-                              onChanged: (v) {
-                                if (v != null) setState(() => actionOp = v);
-                              },
-                            ),
-                          ),
-                        ),
                         SizedBox(
-                          width: 120,
+                          width: 140,
                           child: TextField(
+                            controller: _textController,
                             onChanged: (v) => inputValue = v,
                             onSubmitted: (v) => _applyOperation(actionOp, v),
-                            controller: TextEditingController(text: inputValue)
-                              ..selection = TextSelection.collapsed(offset: inputValue.length),
                             decoration: InputDecoration(
                               hintText: "bijv. -5",
                               hintStyle: const TextStyle(color: Colors.white38),
@@ -391,6 +379,37 @@ class _InequalityGameState extends State<InequalityGame> {
                 ),
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildOpButton(String opCode, String label) {
+    final isSelected = actionOp == opCode;
+    return InkWell(
+      onTap: () {
+        setState(() => actionOp = opCode);
+        SoundEngine().playClickSound();
+      },
+      borderRadius: BorderRadius.circular(10),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          color: isSelected ? AxiomTheme.primaryCyan : const Color(0xFF0F141C),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: isSelected ? AxiomTheme.primaryCyan : Colors.white24,
+            width: isSelected ? 2 : 1,
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: isSelected ? Colors.black : Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 13,
           ),
         ),
       ),
@@ -456,19 +475,15 @@ class _NumberLinePainter extends CustomPainter {
       ..color = Colors.white38
       ..strokeWidth = 2;
 
-    // Aslijn
     canvas.drawLine(Offset(20, lineY), Offset(size.width - 20, lineY), linePaint);
 
-    // Pijlen aan weerszijden van as
     canvas.drawLine(Offset(25, lineY - 5), Offset(20, lineY), linePaint);
     canvas.drawLine(Offset(25, lineY + 5), Offset(20, lineY), linePaint);
     canvas.drawLine(Offset(size.width - 25, lineY - 5), Offset(size.width - 20, lineY), linePaint);
     canvas.drawLine(Offset(size.width - 25, lineY + 5), Offset(size.width - 20, lineY), linePaint);
 
-    // Middenpunt
     final midX = size.width / 2;
 
-    // Oplossingsgebied (gekleurde dikke lijn met pijl)
     final solPaint = Paint()
       ..color = AxiomTheme.primaryCyan
       ..strokeWidth = 5;
@@ -483,7 +498,6 @@ class _NumberLinePainter extends CustomPainter {
       canvas.drawLine(Offset(size.width - 30, lineY + 7), Offset(size.width - 20, lineY), solPaint);
     }
 
-    // Bolletje
     final circlePaint = Paint()
       ..color = isStrict ? const Color(0xFF0F141C) : AxiomTheme.accentGold
       ..style = PaintingStyle.fill;
@@ -495,7 +509,6 @@ class _NumberLinePainter extends CustomPainter {
     canvas.drawCircle(Offset(midX, lineY), 7, circlePaint);
     canvas.drawCircle(Offset(midX, lineY), 7, circleBorder);
 
-    // Label onder bolletje
     final textSpan = TextSpan(
       text: "${targetVal.round()}",
       style: const TextStyle(color: AxiomTheme.accentGold, fontSize: 13, fontWeight: FontWeight.bold),

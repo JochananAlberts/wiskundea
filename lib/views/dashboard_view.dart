@@ -349,8 +349,6 @@ class _DashboardViewState extends State<DashboardView> {
 
   IconData _getQuestIcon(QuestType type) {
     switch (type) {
-      case QuestType.fusion:
-        return Icons.merge_type;
       case QuestType.forge:
         return Icons.auto_fix_high;
       case QuestType.balance:
