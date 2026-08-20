@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter_math_fork/flutter_math.dart';
 import '../models/curriculum.dart';
 import '../core/theme.dart';
 import '../core/sound_engine.dart';
@@ -7,14 +8,15 @@ import '../views/level_complete_dialog.dart';
 
 class BalanceGame extends StatefulWidget {
   final Quest quest;
-  const BalanceGame({Key? key, required this.quest}) : super(key: key);
+  const BalanceGame({super.key, required this.quest});
 
   @override
-  _BalanceGameState createState() => _BalanceGameState();
+  State<BalanceGame> createState() => _BalanceGameState();
 }
 
 class _BalanceGameState extends State<BalanceGame> {
-  // Equation: 5q - 22 = -2q + 54
+  // Startvergelijking: 5q - 22 = -2q + 54
+  // Oplossing: 7q = 76 -> q = 76/7 ≈ 10.857
   double leftQ = 5;
   double leftConst = -22;
   double rightQ = -2;
@@ -22,35 +24,54 @@ class _BalanceGameState extends State<BalanceGame> {
 
   String operation = '+';
   String inputValue = '2q';
+  String statusMessage = "Voer bewerkingen uit op beide zijden om 'q' links te isoleren.";
+  bool hasWon = false;
 
-  void _applyOperation() {
+  void _applyOperation(String op, String valStr) {
+    if (hasWon) return;
+
     double qMod = 0;
     double constMod = 0;
-    
-    if (inputValue.endsWith('q')) {
-      qMod = double.tryParse(inputValue.replaceAll('q', '')) ?? 1;
-      if (inputValue == 'q') qMod = 1;
-      if (inputValue == '-q') qMod = -1;
+
+    valStr = valStr.trim().replaceAll(' ', '');
+
+    if (valStr.endsWith('q')) {
+      final prefix = valStr.substring(0, valStr.length - 1);
+      if (prefix.isEmpty || prefix == '+') {
+        qMod = 1;
+      } else if (prefix == '-') {
+        qMod = -1;
+      } else {
+        qMod = double.tryParse(prefix) ?? 0;
+      }
     } else {
-      constMod = double.tryParse(inputValue) ?? 0;
+      constMod = double.tryParse(valStr) ?? 0;
     }
 
     setState(() {
-      if (operation == '+') {
-        leftQ += qMod; rightQ += qMod;
-        leftConst += constMod; rightConst += constMod;
-      } else if (operation == '-') {
-        leftQ -= qMod; rightQ -= qMod;
-        leftConst -= constMod; rightConst -= constMod;
-      } else if (operation == '*') {
+      if (op == '+') {
+        leftQ += qMod;
+        rightQ += qMod;
+        leftConst += constMod;
+        rightConst += constMod;
+      } else if (op == '-') {
+        leftQ -= qMod;
+        rightQ -= qMod;
+        leftConst -= constMod;
+        rightConst -= constMod;
+      } else if (op == '*') {
         if (constMod != 0) {
-          leftQ *= constMod; rightQ *= constMod;
-          leftConst *= constMod; rightConst *= constMod;
+          leftQ *= constMod;
+          rightQ *= constMod;
+          leftConst *= constMod;
+          rightConst *= constMod;
         }
-      } else if (operation == '/') {
+      } else if (op == '/' || op == ':') {
         if (constMod != 0) {
-          leftQ /= constMod; rightQ /= constMod;
-          leftConst /= constMod; rightConst /= constMod;
+          leftQ /= constMod;
+          rightQ /= constMod;
+          leftConst /= constMod;
+          rightConst /= constMod;
         }
       }
     });
@@ -60,128 +81,311 @@ class _BalanceGameState extends State<BalanceGame> {
   }
 
   void _checkWinCondition() {
-    if (leftQ == 1 && leftConst == 0 && rightQ == 0) {
-      SoundEngine().playFusionSound();
-      Future.delayed(const Duration(milliseconds: 500), () {
+    // Winconditie: Links staat precies 1q en 0 constante, rechts staat 0q en de constante (76/7 ≈ 10.857)
+    final double diffLeftQ = (leftQ - 1).abs();
+    final double diffLeftConst = leftConst.abs();
+    final double diffRightQ = rightQ.abs();
+
+    if (diffLeftQ < 0.01 && diffLeftConst < 0.01 && diffRightQ < 0.01) {
+      hasWon = true;
+      setState(() {
+        statusMessage = "🎉 Geweldig! De vergelijking is opgelost: q = ${(rightConst * 100).round() / 100}";
+      });
+      SoundEngine().playVictoryFanfare();
+      Future.delayed(const Duration(milliseconds: 1000), () {
+        if (!mounted) return;
         LevelCompleteDialog.show(context, widget.quest, 3, widget.quest.baseXP, 'q4');
       });
     }
   }
 
-  String _formatSide(double q, double c) {
+  String _formatTex(double q, double c) {
     String res = "";
-    if (q != 0) {
-      if (q == 1) res += "q";
-      else if (q == -1) res += "-q";
-      else res += "${q == q.roundToDouble() ? q.round() : q}q";
-    }
-    if (c != 0) {
-      if (res.isNotEmpty) {
-        res += c > 0 ? " + ${c == c.roundToDouble() ? c.round() : c}" : " - ${c.abs() == c.abs().roundToDouble() ? c.abs().round() : c.abs()}";
+    if (q.abs() > 0.001) {
+      final double roundQ = (q * 100).round() / 100;
+      if ((roundQ - 1).abs() < 0.001) {
+        res += "q";
+      } else if ((roundQ + 1).abs() < 0.001) {
+        res += "-q";
       } else {
-        res += "${c == c.roundToDouble() ? c.round() : c}";
+        res += "${roundQ == roundQ.roundToDouble() ? roundQ.round() : roundQ}q";
+      }
+    }
+    if (c.abs() > 0.001) {
+      final double roundC = (c * 100).round() / 100;
+      if (res.isNotEmpty) {
+        res += roundC > 0
+            ? " + ${roundC == roundC.roundToDouble() ? roundC.round() : roundC}"
+            : " - ${roundC.abs() == roundC.abs().roundToDouble() ? roundC.abs().round() : roundC.abs()}";
+      } else {
+        res += "${roundC == roundC.roundToDouble() ? roundC.round() : roundC}";
       }
     }
     if (res.isEmpty) return "0";
     return res;
   }
 
+  void _reset() {
+    setState(() {
+      leftQ = 5;
+      leftConst = -22;
+      rightQ = -2;
+      rightConst = 54;
+      hasWon = false;
+      statusMessage = "Vergelijking gereset naar de startpositie.";
+    });
+    SoundEngine().playClickSound();
+  }
+
   @override
   Widget build(BuildContext context) {
-    // Basic tilt calculation based on q value of 10.857
-    double trueQ = (54 + 22) / (5 + 2); // 10.857
-    double leftWeight = leftQ * trueQ + leftConst;
-    double rightWeight = rightQ * trueQ + rightConst;
-    double tilt = (leftWeight - rightWeight).clamp(-50, 50) / 100.0; // -0.5 to 0.5
+    // Echte waarde van q is 76 / 7 ≈ 10.857
+    const double trueQ = 76.0 / 7.0;
+    final double leftWeight = leftQ * trueQ + leftConst;
+    final double rightWeight = rightQ * trueQ + rightConst;
+    final double tilt = ((leftWeight - rightWeight) / 100.0).clamp(-0.25, 0.25);
 
-    return Padding(
-      padding: const EdgeInsets.all(24.0),
-      child: Column(
-        children: [
-          Text("Balance the scale to find 'q'", style: AxiomTheme.themeData.textTheme.displayMedium),
-          const SizedBox(height: 48),
-          
-          // Visual Scale
-          Stack(
-            alignment: Alignment.bottomCenter,
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(20),
+      child: Center(
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 800),
+          child: Column(
             children: [
-              // Base
-              Container(width: 100, height: 20, color: Colors.grey.shade700),
-              // Pillar
-              Container(width: 20, height: 150, color: Colors.grey.shade600, margin: const EdgeInsets.only(bottom: 20)),
-              // Beam
-              Transform.rotate(
-                angle: tilt,
-                child: Container(
-                  margin: const EdgeInsets.only(bottom: 150),
-                  width: 300, height: 10, color: AxiomTheme.accentGold,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      _buildPan(_formatSide(leftQ, leftConst)),
-                      _buildPan(_formatSide(rightQ, rightConst)),
-                    ],
-                  ),
+              // Uitlegbalk
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF161B22),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: AxiomTheme.primaryPurple.withValues(alpha: 0.5)),
                 ),
-              ).animate(target: tilt).rotate(duration: 500.ms, curve: Curves.easeInOut),
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          "Balansmethode",
+                          style: TextStyle(
+                            color: AxiomTheme.accentGold,
+                            fontSize: 17,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        TextButton.icon(
+                          onPressed: _reset,
+                          icon: const Icon(Icons.refresh, color: Colors.white70, size: 18),
+                          label: const Text("Reset", style: TextStyle(color: Colors.white70)),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Text("Huidige staat: ", style: TextStyle(color: Colors.white70)),
+                        Math.tex(
+                          "${_formatTex(leftQ, leftConst)} = ${_formatTex(rightQ, rightConst)}",
+                          textStyle: const TextStyle(
+                            fontSize: 20,
+                            color: AxiomTheme.primaryCyan,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Status indicator
+              Text(
+                statusMessage,
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: Colors.white70, fontSize: 14),
+              ),
+
+              const SizedBox(height: 36),
+
+              // Visuele Weegschaal
+              SizedBox(
+                height: 240,
+                child: Stack(
+                  alignment: Alignment.bottomCenter,
+                  children: [
+                    // Voet
+                    Container(
+                      width: 140,
+                      height: 16,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade700,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    // Pilaar
+                    Container(
+                      width: 18,
+                      height: 140,
+                      color: Colors.grey.shade600,
+                      margin: const EdgeInsets.only(bottom: 16),
+                    ),
+                    // Scharnierpunt
+                    Container(
+                      margin: const EdgeInsets.only(bottom: 145),
+                      width: 28,
+                      height: 28,
+                      decoration: const BoxDecoration(
+                        color: AxiomTheme.accentGold,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    // Kantelende balk met schalen
+                    Transform.rotate(
+                      angle: tilt,
+                      child: Container(
+                        margin: const EdgeInsets.only(bottom: 150),
+                        width: 420,
+                        height: 10,
+                        decoration: BoxDecoration(
+                          color: AxiomTheme.accentGold,
+                          borderRadius: BorderRadius.circular(5),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            _buildPan(_formatTex(leftQ, leftConst), Colors.cyan.shade900),
+                            _buildPan(_formatTex(rightQ, rightConst), Colors.purple.shade900),
+                          ],
+                        ),
+                      ),
+                    ).animate(target: tilt).rotate(duration: 400.ms, curve: Curves.easeOutBack),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 36),
+
+              // Snelle actieknoppen voor veelvoorkomende stappen
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF161B22),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: AxiomTheme.primaryPurple.withValues(alpha: 0.4)),
+                ),
+                child: Column(
+                  children: [
+                    const Text(
+                      "Snelle acties (beide zijden):",
+                      style: TextStyle(color: AxiomTheme.accentGold, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 12),
+                    Wrap(
+                      spacing: 10,
+                      runSpacing: 10,
+                      alignment: WrapAlignment.center,
+                      children: [
+                        _buildQuickActionButton("+ 2q", () => _applyOperation('+', '2q')),
+                        _buildQuickActionButton("+ 22", () => _applyOperation('+', '22')),
+                        _buildQuickActionButton(": 7", () => _applyOperation('/', '7')),
+                        _buildQuickActionButton("- 54", () => _applyOperation('-', '54')),
+                      ],
+                    ),
+                    const Divider(color: Colors.white12, height: 28),
+                    // Aangepaste bewerking invoeren
+                    Wrap(
+                      alignment: WrapAlignment.center,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      spacing: 12,
+                      runSpacing: 12,
+                      children: [
+                        const Text("Zelf bewerking kiezen:", style: TextStyle(color: Colors.white70)),
+                        DropdownButton<String>(
+                          value: operation,
+                          dropdownColor: const Color(0xFF161B22),
+                          items: const [
+                            DropdownMenuItem(value: '+', child: Text("+ (Optellen)", style: TextStyle(color: Colors.white))),
+                            DropdownMenuItem(value: '-', child: Text("- (Aftrekken)", style: TextStyle(color: Colors.white))),
+                            DropdownMenuItem(value: '*', child: Text("· (Vermenigvuldigen)", style: TextStyle(color: Colors.white))),
+                            DropdownMenuItem(value: '/', child: Text(": (Delen)", style: TextStyle(color: Colors.white))),
+                          ],
+                          onChanged: (v) {
+                            if (v != null) setState(() => operation = v);
+                          },
+                        ),
+                        SizedBox(
+                          width: 140,
+                          child: TextField(
+                            onChanged: (v) => inputValue = v,
+                            decoration: InputDecoration(
+                              hintText: "bijv. 2q of 22",
+                              hintStyle: const TextStyle(color: Colors.white38, fontSize: 13),
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                              filled: true,
+                              fillColor: Colors.black45,
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                            ),
+                            style: const TextStyle(color: Colors.white),
+                          ),
+                        ),
+                        ElevatedButton(
+                          onPressed: () => _applyOperation(operation, inputValue),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AxiomTheme.primaryCyan,
+                            foregroundColor: Colors.black,
+                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                          ),
+                          child: const Text("TOEPASSEN OP BEIDE ZIJDEN", style: TextStyle(fontWeight: FontWeight.bold)),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
             ],
           ),
-          
-          const SizedBox(height: 64),
-          
-          // Controls
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: AxiomTheme.themeData.cardTheme.color,
-              borderRadius: BorderRadius.circular(16)
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                DropdownButton<String>(
-                  value: operation,
-                  dropdownColor: AxiomTheme.background,
-                  items: ['+', '-', '*', '/'].map((e) => DropdownMenuItem(value: e, child: Text(e, style: const TextStyle(fontSize: 24, color: Colors.white)))).toList(),
-                  onChanged: (v) => setState(() => operation = v!),
-                ),
-                const SizedBox(width: 16),
-                SizedBox(
-                  width: 150,
-                  child: TextField(
-                    onChanged: (v) => inputValue = v,
-                    decoration: const InputDecoration(
-                      hintText: "e.g. 2q or 22",
-                      border: OutlineInputBorder(),
-                      filled: true,
-                      fillColor: Colors.black26
-                    ),
-                    style: const TextStyle(color: Colors.white),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                ElevatedButton(
-                  onPressed: _applyOperation,
-                  child: const Text("APPLY TO BOTH SIDES"),
-                )
-              ],
-            ),
-          )
-        ],
+        ),
       ),
     );
   }
 
-  Widget _buildPan(String text) {
-    return Transform.translate(
-      offset: const Offset(0, 30),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: AxiomTheme.primaryPurple,
-          borderRadius: const BorderRadius.vertical(bottom: Radius.circular(30)),
+  Widget _buildQuickActionButton(String label, VoidCallback onPressed) {
+    return ActionChip(
+      backgroundColor: const Color(0xFF0F141C),
+      side: const BorderSide(color: AxiomTheme.primaryCyan),
+      label: Text(
+        label,
+        style: const TextStyle(
+          color: AxiomTheme.primaryCyan,
+          fontWeight: FontWeight.bold,
+          fontSize: 14,
         ),
-        child: Text(text, style: const TextStyle(fontSize: 24, color: Colors.white)),
+      ),
+      onPressed: onPressed,
+    );
+  }
+
+  Widget _buildPan(String tex, Color color) {
+    return Transform.translate(
+      offset: const Offset(0, 42),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: color,
+          borderRadius: const BorderRadius.vertical(bottom: Radius.circular(24)),
+          border: Border.all(color: AxiomTheme.accentGold, width: 2),
+          boxShadow: const [BoxShadow(color: Colors.black54, blurRadius: 8)],
+        ),
+        child: Math.tex(
+          tex,
+          textStyle: const TextStyle(
+            fontSize: 20,
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
       ),
     );
   }

@@ -8,8 +8,8 @@ import '../core/theme.dart';
 
 class QuestRouter extends StatelessWidget {
   final Quest quest;
-  
-  const QuestRouter({Key? key, required this.quest}) : super(key: key);
+
+  const QuestRouter({super.key, required this.quest});
 
   @override
   Widget build(BuildContext context) {
@@ -27,16 +27,26 @@ class QuestRouter extends StatelessWidget {
       case QuestType.inequality:
         gameWidget = InequalityGame(quest: quest);
         break;
-      default:
-        gameWidget = Center(child: Text("Coming soon!", style: TextStyle(color: Colors.white)));
     }
 
     return Scaffold(
       backgroundColor: AxiomTheme.background,
       appBar: AppBar(
-        title: Text(quest.title, style: AxiomTheme.themeData.textTheme.bodyLarge),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
+        title: Text(
+          quest.title,
+          style: const TextStyle(
+            color: AxiomTheme.textWhite,
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+          ),
+        ),
+        backgroundColor: const Color(0xFF161B22),
+        elevation: 2,
+        leading: IconButton(
+          tooltip: 'Terug naar overzicht',
+          icon: const Icon(Icons.arrow_back, color: AxiomTheme.primaryCyan),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
       ),
       body: gameWidget,
     );

@@ -4,7 +4,12 @@ class GameDomain {
   final String description;
   final List<Chapter> chapters;
 
-  GameDomain({required this.id, required this.title, required this.description, required this.chapters});
+  GameDomain({
+    required this.id,
+    required this.title,
+    required this.description,
+    required this.chapters,
+  });
 }
 
 class Chapter {
@@ -12,14 +17,18 @@ class Chapter {
   final String title;
   final List<Quest> quests;
 
-  Chapter({required this.id, required this.title, required this.quests});
+  Chapter({
+    required this.id,
+    required this.title,
+    required this.quests,
+  });
 }
 
 enum QuestType {
-  fusion, // Herleiden & Machten
-  forge,  // Haakjes wegwerken
-  balance, // Vergelijkingen oplossen
-  inequality // Ongelijkheden
+  fusion,    // Herleiden & Machten
+  forge,     // Haakjes wegwerken & Ontbinden
+  balance,   // Balansmethode & Lineaire vergelijkingen
+  inequality // Ongelijkheden & Mintekenregel
 }
 
 class Quest {
@@ -28,6 +37,7 @@ class Quest {
   final QuestType type;
   final int baseXP;
   final String description;
+  final String mathSummary;
 
   Quest({
     required this.id,
@@ -35,23 +45,52 @@ class Quest {
     required this.type,
     required this.baseXP,
     required this.description,
+    required this.mathSummary,
   });
 }
 
-// Sample Data
+// Curriculum data in het Nederlands voor VWO Wiskunde A
 final world1 = GameDomain(
   id: 'domein_ab',
   title: 'Domein A/B: Algebraïsche Vaardigheden',
-  description: 'Master the elements of algebra.',
+  description: 'Beheers de fundamenten van algebra, machten en vergelijkingen voor het eindexamen.',
   chapters: [
     Chapter(
       id: 'chap_1',
-      title: 'Les 7: Basis Algebra',
+      title: 'Hoofdstuk 1: Basisalgebra & Vergelijkingen',
       quests: [
-        Quest(id: 'q1', title: 'Element Fusion', type: QuestType.fusion, baseXP: 100, description: 'Herleiden & Machten'),
-        Quest(id: 'q2', title: 'The Alchemist\'s Forge', type: QuestType.forge, baseXP: 150, description: 'Haakjes Wegwerken & Ontbinden'),
-        Quest(id: 'q3', title: 'Scale of Truth', type: QuestType.balance, baseXP: 200, description: 'Balansmethode & Lineaire Vergelijkingen'),
-        Quest(id: 'q4', title: 'Dimension Flip', type: QuestType.inequality, baseXP: 250, description: 'Ongelijkheden & Minteken'),
+        Quest(
+          id: 'q1',
+          title: 'Element Fusion',
+          type: QuestType.fusion,
+          baseXP: 100,
+          description: 'Gelijksoortige termen herleiden & rekenregels voor machten.',
+          mathSummary: r'3x + 2x = 5x \quad \text{en} \quad 4x^3 \cdot 2x^2 = 8x^5',
+        ),
+        Quest(
+          id: 'q2',
+          title: "De Alchemist's Smederij",
+          type: QuestType.forge,
+          baseXP: 150,
+          description: 'Haakjes wegwerken (distributiviteit) & ontbinden in factoren.',
+          mathSummary: r'3a(2a - 5b) = 6a^2 - 15ab \quad \text{en} \quad 6p^2 - 10pq = 2p(3p - 5q)',
+        ),
+        Quest(
+          id: 'q3',
+          title: 'Weegschaal der Waarheid',
+          type: QuestType.balance,
+          baseXP: 200,
+          description: 'Lineaire vergelijkingen oplossen met de balansmethode.',
+          mathSummary: r'5q - 22 = -2q + 54 \implies q = 10.86',
+        ),
+        Quest(
+          id: 'q4',
+          title: 'Dimensie Klap (Minteken)',
+          type: QuestType.inequality,
+          baseXP: 250,
+          description: 'Lineaire ongelijkheden oplossen met de klap-het-teken regel bij delen door een negatief getal.',
+          mathSummary: r'-5t > -15 \implies t < 3',
+        ),
       ],
     ),
   ],

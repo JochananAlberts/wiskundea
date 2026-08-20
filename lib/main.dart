@@ -19,7 +19,7 @@ void main() {
 }
 
 class AxiomApp extends StatelessWidget {
-  const AxiomApp({Key? key}) : super(key: key);
+  const AxiomApp({super.key});
 
   @override
   Widget build(BuildContext context) {
