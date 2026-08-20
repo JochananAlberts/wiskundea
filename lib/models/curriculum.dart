@@ -61,7 +61,7 @@ final world1 = GameDomain(
       quests: [
         Quest(
           id: 'q1',
-          title: 'Element Fusion',
+          title: 'Elementen Fusie',
           type: QuestType.fusion,
           baseXP: 100,
           description: 'Gelijksoortige termen herleiden & rekenregels voor machten.',
@@ -69,7 +69,7 @@ final world1 = GameDomain(
         ),
         Quest(
           id: 'q2',
-          title: "De Alchemist's Smederij",
+          title: 'De Alchemisten Smederij',
           type: QuestType.forge,
           baseXP: 150,
           description: 'Haakjes wegwerken (distributiviteit) & ontbinden in factoren.',
@@ -81,11 +81,11 @@ final world1 = GameDomain(
           type: QuestType.balance,
           baseXP: 200,
           description: 'Lineaire vergelijkingen oplossen met de balansmethode.',
-          mathSummary: r'5q - 22 = -2q + 54 \implies q = 10.86',
+          mathSummary: r'5q - 22 = -2q + 48 \implies q = 10',
         ),
         Quest(
           id: 'q4',
-          title: 'Dimensie Klap (Minteken)',
+          title: 'Dimensie Klap (Ongelijkheden)',
           type: QuestType.inequality,
           baseXP: 250,
           description: 'Lineaire ongelijkheden oplossen met de klap-het-teken regel bij delen door een negatief getal.',

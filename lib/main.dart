@@ -24,7 +24,7 @@ class AxiomApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Axiom RPG',
+      title: 'Axiom: VWO Wiskunde A',
       debugShowCheckedModeBanner: false,
       theme: AxiomTheme.themeData,
       home: const DashboardView(),
