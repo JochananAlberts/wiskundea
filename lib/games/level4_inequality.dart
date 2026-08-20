@@ -315,77 +315,64 @@ class _InequalityGameState extends State<InequalityGame> {
 
               // Bediening
               Container(
-                padding: const EdgeInsets.all(18),
+                padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
                   color: const Color(0xFF161B22),
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AxiomTheme.primaryPurple.withValues(alpha: 0.4)),
+                  border: Border.all(color: AxiomTheme.primaryPurple.withValues(alpha: 0.5), width: 1.5),
                 ),
                 child: Column(
                   children: [
                     const Text(
-                      "Snelle acties:",
-                      style: TextStyle(color: AxiomTheme.accentGold, fontWeight: FontWeight.bold),
+                      "Kies een bewerking om toe te passen:",
+                      style: TextStyle(color: AxiomTheme.accentGold, fontWeight: FontWeight.bold, fontSize: 15),
                     ),
-                    const SizedBox(height: 10),
-                    Wrap(
-                      spacing: 10,
-                      runSpacing: 10,
-                      alignment: WrapAlignment.center,
-                      children: p.recommendedSteps.map((step) {
-                        return ActionChip(
-                          backgroundColor: const Color(0xFF0F141C),
-                          side: const BorderSide(color: AxiomTheme.primaryCyan),
-                          label: Text(
-                            "Deel door ${step.replaceAll(':', '').replaceAll('/', '').trim()} ($step)",
-                            style: const TextStyle(
-                              color: AxiomTheme.primaryCyan,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 14,
-                            ),
-                          ),
-                          onPressed: () {
-                            final val = step.replaceAll(':', '').replaceAll('/', '').trim();
-                            _applyOperation('/', val);
-                          },
-                        );
-                      }).toList(),
-                    ),
-                    const Divider(color: Colors.white12, height: 28),
+                    const SizedBox(height: 16),
                     Wrap(
                       alignment: WrapAlignment.center,
                       crossAxisAlignment: WrapCrossAlignment.center,
-                      spacing: 12,
-                      runSpacing: 12,
+                      spacing: 14,
+                      runSpacing: 14,
                       children: [
-                        const Text("Handmatige bewerking:", style: TextStyle(color: Colors.white70)),
-                        DropdownButton<String>(
-                          value: actionOp,
-                          dropdownColor: const Color(0xFF161B22),
-                          items: const [
-                            DropdownMenuItem(value: '+', child: Text("+ (Optellen)", style: TextStyle(color: Colors.white))),
-                            DropdownMenuItem(value: '-', child: Text("- (Aftrekken)", style: TextStyle(color: Colors.white))),
-                            DropdownMenuItem(value: '*', child: Text("· (Vermenigvuldigen)", style: TextStyle(color: Colors.white))),
-                            DropdownMenuItem(value: '/', child: Text(": (Delen)", style: TextStyle(color: Colors.white))),
-                          ],
-                          onChanged: (v) {
-                            if (v != null) setState(() => actionOp = v);
-                          },
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          decoration: BoxDecoration(
+                            color: Colors.black45,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: Colors.white24),
+                          ),
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButton<String>(
+                              value: actionOp,
+                              dropdownColor: const Color(0xFF161B22),
+                              items: const [
+                                DropdownMenuItem(value: '+', child: Text("+ (Optellen)", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
+                                DropdownMenuItem(value: '-', child: Text("- (Aftrekken)", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
+                                DropdownMenuItem(value: '*', child: Text("· (Vermenigvuldigen)", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
+                                DropdownMenuItem(value: '/', child: Text(": (Delen)", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
+                              ],
+                              onChanged: (v) {
+                                if (v != null) setState(() => actionOp = v);
+                              },
+                            ),
+                          ),
                         ),
                         SizedBox(
-                          width: 100,
+                          width: 120,
                           child: TextField(
                             onChanged: (v) => inputValue = v,
+                            onSubmitted: (v) => _applyOperation(actionOp, v),
                             controller: TextEditingController(text: inputValue)
                               ..selection = TextSelection.collapsed(offset: inputValue.length),
                             decoration: InputDecoration(
-                              hintText: "-5",
+                              hintText: "bijv. -5",
+                              hintStyle: const TextStyle(color: Colors.white38),
                               border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
                               filled: true,
                               fillColor: Colors.black45,
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                             ),
-                            style: const TextStyle(color: Colors.white, fontSize: 16),
+                            style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
                           ),
                         ),
                         ElevatedButton(
@@ -393,9 +380,10 @@ class _InequalityGameState extends State<InequalityGame> {
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AxiomTheme.primaryCyan,
                             foregroundColor: Colors.black,
-                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           ),
-                          child: const Text("TOEPASSEN", style: TextStyle(fontWeight: FontWeight.bold)),
+                          child: const Text("TOEPASSEN", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
                         ),
                       ],
                     ),

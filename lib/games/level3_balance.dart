@@ -337,78 +337,66 @@ class _BalanceGameState extends State<BalanceGame> {
 
               const SizedBox(height: 32),
 
-              // Snelle acties & handmatige bediening
+              // Zelfstandige balans bediening (geen voorkauw-knoppen)
               Container(
-                padding: const EdgeInsets.all(18),
+                padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
                   color: const Color(0xFF161B22),
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AxiomTheme.primaryPurple.withValues(alpha: 0.4)),
+                  border: Border.all(color: AxiomTheme.primaryPurple.withValues(alpha: 0.5), width: 1.5),
                 ),
                 child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     const Text(
-                      "Aanbevolen stappen:",
-                      style: TextStyle(color: AxiomTheme.accentGold, fontWeight: FontWeight.bold),
+                      "Kies een bewerking om op beide zijden toe te passen:",
+                      style: TextStyle(color: AxiomTheme.accentGold, fontWeight: FontWeight.bold, fontSize: 15),
+                      textAlign: TextAlign.center,
                     ),
-                    const SizedBox(height: 10),
-                    Wrap(
-                      spacing: 10,
-                      runSpacing: 10,
-                      alignment: WrapAlignment.center,
-                      children: eq.recommendedSteps.map((step) {
-                        final parts = step.split(' ');
-                        final op = parts[0];
-                        final val = parts[1];
-                        return ActionChip(
-                          backgroundColor: const Color(0xFF0F141C),
-                          side: const BorderSide(color: AxiomTheme.primaryCyan),
-                          label: Text(
-                            step,
-                            style: const TextStyle(
-                              color: AxiomTheme.primaryCyan,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 14,
-                            ),
-                          ),
-                          onPressed: () => _applyOperation(op, val),
-                        );
-                      }).toList(),
-                    ),
-                    const Divider(color: Colors.white12, height: 28),
+                    const SizedBox(height: 18),
                     Wrap(
                       alignment: WrapAlignment.center,
                       crossAxisAlignment: WrapCrossAlignment.center,
-                      spacing: 12,
-                      runSpacing: 12,
+                      spacing: 14,
+                      runSpacing: 14,
                       children: [
-                        const Text("Eigen bewerking:", style: TextStyle(color: Colors.white70)),
-                        DropdownButton<String>(
-                          value: operation,
-                          dropdownColor: const Color(0xFF161B22),
-                          items: const [
-                            DropdownMenuItem(value: '+', child: Text("+ (Optellen)", style: TextStyle(color: Colors.white))),
-                            DropdownMenuItem(value: '-', child: Text("- (Aftrekken)", style: TextStyle(color: Colors.white))),
-                            DropdownMenuItem(value: '*', child: Text("· (Vermenigvuldigen)", style: TextStyle(color: Colors.white))),
-                            DropdownMenuItem(value: '/', child: Text(": (Delen)", style: TextStyle(color: Colors.white))),
-                          ],
-                          onChanged: (v) {
-                            if (v != null) setState(() => operation = v);
-                          },
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          decoration: BoxDecoration(
+                            color: Colors.black45,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: Colors.white24),
+                          ),
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButton<String>(
+                              value: operation,
+                              dropdownColor: const Color(0xFF161B22),
+                              items: const [
+                                DropdownMenuItem(value: '+', child: Text("+ (Optellen)", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
+                                DropdownMenuItem(value: '-', child: Text("- (Aftrekken)", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
+                                DropdownMenuItem(value: '*', child: Text("· (Vermenigvuldigen)", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
+                                DropdownMenuItem(value: '/', child: Text(": (Delen)", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
+                              ],
+                              onChanged: (v) {
+                                if (v != null) setState(() => operation = v);
+                              },
+                            ),
+                          ),
                         ),
                         SizedBox(
-                          width: 130,
+                          width: 150,
                           child: TextField(
                             onChanged: (v) => inputValue = v,
+                            onSubmitted: (v) => _applyOperation(operation, v),
                             decoration: InputDecoration(
-                              hintText: "bijv. 2${eq.variable}",
+                              hintText: "bijv. 2${eq.variable} of 22",
                               hintStyle: const TextStyle(color: Colors.white38, fontSize: 13),
                               border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
                               filled: true,
                               fillColor: Colors.black45,
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                             ),
-                            style: const TextStyle(color: Colors.white),
+                            style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
                           ),
                         ),
                         ElevatedButton(
@@ -416,9 +404,10 @@ class _BalanceGameState extends State<BalanceGame> {
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AxiomTheme.primaryCyan,
                             foregroundColor: Colors.black,
-                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                            padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 16),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           ),
-                          child: const Text("TOEPASSEN OP BEIDE KANTEN", style: TextStyle(fontWeight: FontWeight.bold)),
+                          child: const Text("TOEPASSEN OP BEIDE KANTEN", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
                         ),
                       ],
                     ),
