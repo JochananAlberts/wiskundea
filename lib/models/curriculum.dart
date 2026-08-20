@@ -1,3 +1,5 @@
+import 'generated_problem.dart';
+
 class GameDomain {
   final String id;
   final String title;
@@ -25,9 +27,10 @@ class Chapter {
 }
 
 enum QuestType {
-  forge,     // Haakjes wegwerken & Ontbinden
-  balance,   // Balansmethode & Lineaire vergelijkingen
-  inequality // Ongelijkheden & Mintekenregel
+  simplify,   // Quest 1: Herleiden
+  brackets,   // Quest 2: Haakjes & Factoren
+  equations,  // Quest 3: Vergelijkingen
+  inequality, // Quest 4: Ongelijkheden
 }
 
 class Quest {
@@ -37,6 +40,7 @@ class Quest {
   final int baseXP;
   final String description;
   final String mathSummary;
+  final Map<DifficultyTier, String> tierDescriptions;
 
   Quest({
     required this.id,
@@ -45,42 +49,71 @@ class Quest {
     required this.baseXP,
     required this.description,
     required this.mathSummary,
+    required this.tierDescriptions,
   });
 }
 
-// Curriculum voor VWO Wiskunde A (3 kernvaardigheden)
+// Curriculum data voor VWO Wiskunde A (4 procedurale missies)
 final world1 = GameDomain(
   id: 'domein_ab',
   title: 'Domein A/B: Algebraïsche Vaardigheden',
-  description: 'Beheers haakjes wegwerken, ontbinden in factoren, de balansmethode en ongelijkheden.',
+  description: 'Train je algebraïsche vaardigheden met oneindig veel procedurale opgaven op echt VWO niveau.',
   chapters: [
     Chapter(
       id: 'chap_1',
-      title: 'Hoofdstuk 1: Algebra & Vergelijkingen',
+      title: 'VWO Wiskunde A: Algebraïsche Kernvaardigheden',
       quests: [
         Quest(
           id: 'q1',
-          title: 'De Alchemisten Smederij',
-          type: QuestType.forge,
-          baseXP: 150,
-          description: 'Haakjes wegwerken en ontbinden in factoren.',
-          mathSummary: r'3a(2a - 5b) \quad \text{en} \quad 6p^2 - 10pq',
+          title: 'Quest 1: Herleiden & Machten',
+          type: QuestType.simplify,
+          baseXP: 100,
+          description: 'Gelijksoortige termen optellen, machten vermenigvuldigen en breuken herleiden.',
+          mathSummary: r'\frac{24x^7y^3}{6xy^2} + 2x^6y = 6x^6y',
+          tierDescriptions: {
+            DifficultyTier.makkelijk: 'Optellen en aftrekken van gelijksoortige termen.',
+            DifficultyTier.gemiddeld: 'Vermenigvuldigen van machten met exponenten.',
+            DifficultyTier.vwoMoeilijk: 'Complexe breuken met gemengde variabelen en machten.',
+          },
         ),
         Quest(
           id: 'q2',
-          title: 'Weegschaal der Waarheid',
-          type: QuestType.balance,
-          baseXP: 200,
-          description: 'Lineaire vergelijkingen oplossen met de balansmethode.',
-          mathSummary: r'5q - 22 = -2q + 48 \implies q = 10',
+          title: 'Quest 2: Haakjes & Factoren',
+          type: QuestType.brackets,
+          baseXP: 150,
+          description: 'Enkele haakjes, dubbele haakjes (papegaaienbek) en gecombineerde uitdrukkingen.',
+          mathSummary: r'(2a + 3b)(3a - 5b) = 6a^2 - ab - 15b^2',
+          tierDescriptions: {
+            DifficultyTier.makkelijk: 'Enkele haakjes uitwerken met negatieve factoren.',
+            DifficultyTier.gemiddeld: 'Dubbele haakjes uitwerken en herleiden.',
+            DifficultyTier.vwoMoeilijk: 'Gecombineerde uitdrukkingen met meerdere haakjes en mintekens.',
+          },
         ),
         Quest(
           id: 'q3',
-          title: 'Dimensie Klap (Ongelijkheden)',
+          title: 'Quest 3: Vergelijkingen Oplossen',
+          type: QuestType.equations,
+          baseXP: 200,
+          description: 'Balansmethode, haakjes aan beide zijden en vergelijkingen met breuken.',
+          mathSummary: r'\frac{1}{4}(2t - 2) - 8 = -5(t - 6) - 3',
+          tierDescriptions: {
+            DifficultyTier.makkelijk: 'Basis balansmethode met variabelen aan beide kanten.',
+            DifficultyTier.gemiddeld: 'Vergelijkingen met haakjes aan beide zijden.',
+            DifficultyTier.vwoMoeilijk: 'Complexe VWO-vergelijkingen met breuken en afronding.',
+          },
+        ),
+        Quest(
+          id: 'q4',
+          title: 'Quest 4: Ongelijkheden & Minteken',
           type: QuestType.inequality,
           baseXP: 250,
-          description: 'Lineaire ongelijkheden oplossen met de mintekenregel.',
-          mathSummary: r'-5t > -15 \implies t < 3',
+          description: 'Lineaire ongelijkheden en de klapregel bij delen door een negatief getal.',
+          mathSummary: r'-4(t + 4) \le 2t + 4 \implies t \ge -3.33',
+          tierDescriptions: {
+            DifficultyTier.makkelijk: 'Standaard lineaire ongelijkheden.',
+            DifficultyTier.gemiddeld: 'Ongelijkheden met haakjes en minteken klapregel.',
+            DifficultyTier.vwoMoeilijk: 'Complexe ongelijkheden met meerdere stappen en breuken.',
+          },
         ),
       ],
     ),
